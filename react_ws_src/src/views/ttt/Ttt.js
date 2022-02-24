@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 
 import SetName from './SetName'
 import SetGameType from './SetGameType'
+import SetGameSize from './SetGameSize'
 
 import GameMain from './GameMain'
 
@@ -12,7 +13,9 @@ export default class Ttt extends Component {
 		super(props)
 
 		this.state = {
-			game_step: this.set_game_step()
+			game_step: this.set_game_step(),
+			game_size: 3,
+			game_type: null,
 		}
 	}
 
@@ -22,7 +25,6 @@ export default class Ttt extends Component {
 
 		const {game_step} = this.state
 
-		console.log(game_step)
 
 		return (
 			<section id='TTT_game'>
@@ -40,7 +42,11 @@ export default class Ttt extends Component {
 					{game_step == 'set_game_type' && <SetGameType 
 														onSetType={this.saveGameType.bind(this)} 
 													/>}
+					{game_step == 'set_game_size' && <SetGameSize 
+														onSetSize={this.saveGameSize.bind(this)} 
+													/>}
 					{game_step == 'start_game' && <GameMain 
+														game_size={this.state.game_size}
 														game_type={this.state.game_type}
 														onEndGame={this.gameEnd.bind(this)} 
 													/>}
@@ -64,15 +70,30 @@ export default class Ttt extends Component {
 	saveGameType (t) {
 		this.state.game_type = t
 
+		if (t === 'live') {
+			this.state.game_size = 3;
+		}
+
+		this.upd_game_step()
+	}
+
+//	------------------------	------------------------	------------------------
+
+	saveGameSize (t) {
+		this.state.game_size = t;
+
 		this.upd_game_step()
 	}
 
 //	------------------------	------------------------	------------------------
 
 	gameEnd (t) {
-		this.state.game_type = null
-
-		this.upd_game_step()
+		// Reset both game size & type and force them to select game size again
+		this.setState({
+			game_step: 'set_game_type',
+			game_size: null,
+			game_type: null,
+		});
 	}
 
 //	------------------------	------------------------	------------------------
@@ -93,6 +114,8 @@ export default class Ttt extends Component {
 			return 'set_name'
 		else if (!this.state.game_type)
 			return 'set_game_type'
+		else if (this.state.game_type && this.state.game_type === 'comp' && !this.state.game_size)
+			return 'set_game_size'
 		else
 			return 'start_game'
 	}

@@ -6,24 +6,14 @@ import TweenMax from 'gsap'
 
 import rand_arr_elem from '../../helpers/rand_arr_elem'
 import rand_to_fro from '../../helpers/rand_to_fro'
+import calculate_win_sets from '../../helpers/calculate_win_sets'
 
-export default class SetName extends Component {
+export default class GameMain extends Component {
 
 	constructor (props) {
 		super(props)
 
-		this.win_sets = [
-			['c1', 'c2', 'c3'],
-			['c4', 'c5', 'c6'],
-			['c7', 'c8', 'c9'],
-
-			['c1', 'c4', 'c7'],
-			['c2', 'c5', 'c8'],
-			['c3', 'c6', 'c9'],
-
-			['c1', 'c5', 'c9'],
-			['c3', 'c5', 'c7']
-		]
+		this.win_sets = calculate_win_sets(this.props.game_size)
 
 
 		if (this.props.game_type != 'live')
@@ -56,7 +46,6 @@ export default class SetName extends Component {
 //	------------------------	------------------------	------------------------
 
 	sock_start () {
-
 		this.socket = io(app.settings.ws_conf.loc.SOCKET__io.u);
 
 		this.socket.on('connect', function(data) { 
@@ -107,6 +96,7 @@ export default class SetName extends Component {
 
 	render () {
 		const { cell_vals } = this.state
+		const { game_size } = this.props;
 		// console.log(cell_vals)
 
 		return (
@@ -122,21 +112,18 @@ export default class SetName extends Component {
 				<div id="game_board">
 					<table>
 					<tbody>
-						<tr>
-							<td id='game_board-c1' ref='c1' onClick={this.click_cell.bind(this)}> {this.cell_cont('c1')} </td>
-							<td id='game_board-c2' ref='c2' onClick={this.click_cell.bind(this)} className="vbrd"> {this.cell_cont('c2')} </td>
-							<td id='game_board-c3' ref='c3' onClick={this.click_cell.bind(this)}> {this.cell_cont('c3')} </td>
-						</tr>
-						<tr>
-							<td id='game_board-c4' ref='c4' onClick={this.click_cell.bind(this)} className="hbrd"> {this.cell_cont('c4')} </td>
-							<td id='game_board-c5' ref='c5' onClick={this.click_cell.bind(this)} className="vbrd hbrd"> {this.cell_cont('c5')} </td>
-							<td id='game_board-c6' ref='c6' onClick={this.click_cell.bind(this)} className="hbrd"> {this.cell_cont('c6')} </td>
-						</tr>
-						<tr>
-							<td id='game_board-c7' ref='c7' onClick={this.click_cell.bind(this)}> {this.cell_cont('c7')} </td>
-							<td id='game_board-c8' ref='c8' onClick={this.click_cell.bind(this)} className="vbrd"> {this.cell_cont('c8')} </td>
-							<td id='game_board-c9' ref='c9' onClick={this.click_cell.bind(this)}> {this.cell_cont('c9')} </td>
-						</tr>
+						{[...Array(game_size)].map((_ignore1, y) => {
+							return (
+								<tr key={y}>
+									{[...Array(game_size)].map((_ignore2, x) => {
+										const cellName = `c${(y * game_size) + (x + 1)}`;
+										return (
+											<td id={`game_board-${cellName}`} ref={cellName} onClick={this.click_cell.bind(this)} key={x}> {this.cell_cont(cellName)} </td>
+										)
+									})}
+								</tr>
+							);
+						})}
 					</tbody>
 					</table>
 				</div>
@@ -192,12 +179,13 @@ export default class SetName extends Component {
 //	------------------------	------------------------	------------------------
 
 	turn_comp () {
-
+		const { game_size}  = this.props
+		const totalSize = game_size * game_size;
 		let { cell_vals } = this.state
 		let empty_cells_arr = []
 
 
-		for (let i=1; i<=9; i++) 
+		for (let i=1; i<=totalSize; i++) 
 			!cell_vals['c'+i] && empty_cells_arr.push('c'+i)
 		// console.log(cell_vals, empty_cells_arr, rand_arr_elem(empty_cells_arr))
 
@@ -274,32 +262,49 @@ export default class SetName extends Component {
 	check_turn () {
 
 		const { cell_vals } = this.state
+		const { game_size } = this.props;
 
 		let win = false
 		let set
-		let fin = true
+		let fin = false // swap the fin rules. starting with not finished.
 
-		if (this.props.game_type!='live')
-			this.state.game_stat = 'Play'
-
+		if (this.props.game_type != 'live') {
+			this.setState({
+				game_stat: 'Play'
+			});
+		}
 
 		for (let i=0; !win && i<this.win_sets.length; i++) {
 			set = this.win_sets[i]
-			if (cell_vals[set[0]] && cell_vals[set[0]]==cell_vals[set[1]] && cell_vals[set[0]]==cell_vals[set[2]])
-				win = true
+
+			// Check win condition based of the number of filled cells 
+			let playerCount = 0;
+			let enemyCount = 0;
+			for (let j=0; j<game_size; j++) {
+				if (cell_vals[set[j]] == 'x') {
+					playerCount++;
+				} else if (cell_vals[set[j]] == 'o') {
+					enemyCount++;
+				}
+
+				if (playerCount == game_size || enemyCount == game_size) {
+					win = true;
+				}
+			}
 		}
 
-
-		for (let i=1; i<=9; i++) 
-			!cell_vals['c'+i] && (fin = false)
+		// If the length of the cell_vals is as big as the total cells, then the game is finished
+		if ((Object.keys(cell_vals).length >= (game_size * game_size)) || win) {
+			fin = true;
+		}
 
 		// win && console.log('win set: ', set)
 
 		if (win) {
 		
-			this.refs[set[0]].classList.add('win')
-			this.refs[set[1]].classList.add('win')
-			this.refs[set[2]].classList.add('win')
+			for(let i=0; i<game_size; i++) {
+				this.refs[set[i]].classList.add('win');
+			}
 
 			TweenMax.killAll(true)
 			TweenMax.from('td.win', 1, {opacity: 0, ease: Linear.easeIn})

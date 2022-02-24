@@ -136,12 +136,30 @@ section#TTT_game{
 			margin: 10px;
 		}
 
+		tr {
+			td {
+				border-bottom: 7px solid #000;
+			}
+
+			&:last-child {
+				td {
+					border-bottom: 0;
+				}
+			}
+		}
+
 		td {
 			width: 130px;
 			height: 130px;
 
 			vertical-align: middle;
 			text-align: center;
+
+			border-right: 7px solid #000;
+
+			&:last-child {
+				border-right: 0;
+			}
 
 			&:hover{
 				background: #ff0;
@@ -150,16 +168,6 @@ section#TTT_game{
 			&.win {
 				background: #f00;
 			}
-		}
-
-		.vbrd {
-			border-left: 7px solid #000;
-			border-right: 7px solid #000;
-		}
-
-		.hbrd {
-			border-top: 7px solid #000;
-			border-bottom: 7px solid #000;
 		}
 	}
 
